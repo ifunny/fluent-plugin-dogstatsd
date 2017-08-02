@@ -4,13 +4,10 @@ module Fluent
 
     config_param :host, :string, :default => nil
     config_param :port, :integer, :default => nil
-    config_param :use_tag_as_key, :bool, :default => false
-    config_param :use_tag_as_key_if_missing, :bool, :default => false
-    config_param :flat_tags, :bool, :default => false
-    config_param :flat_tag, :bool, :default => false # obsolete
     config_param :metric_type, :string, :default => nil
-    config_param :value_key, :string, :default => nil
     config_param :sample_rate, :float, :default => nil
+    config_param :key_name, :string, :default => nil
+    config_param :dogstatsd_tag_name, :string, :default => nil
 
     unless method_defined?(:log)
       define_method(:log) { $log }
@@ -40,22 +37,13 @@ module Fluent
     def write(chunk)
       @statsd.batch do |s|
         chunk.msgpack_each do |tag, time, record|
-          key = if @use_tag_as_key
-                  tag
-                else
-                  record.delete('key')
-                end
-
-          if !key && @use_tag_as_key_if_missing
-            key = tag
-          end
+          value = 1
+          key = @key_name
 
           unless key
-            log.warn "'key' is not specified. skip this record:", tag: tag
+            log.warn "'key_name' is not specified. skip this record:", tag: tag
             next
           end
-
-          value = record.delete(@value_key || 'value')
 
           options = {}
           title = record.delete('title')
@@ -67,16 +55,8 @@ module Fluent
             options[:sample_rate] = sample_rate
           end
 
-          tags = if @flat_tags || @flat_tag
-                   record
-                 else
-                   record['tags']
-                 end
-          if tags
-            options[:tags] = tags.map do |k, v|
-              "#{k}:#{v}"
-            end
-          end
+          dogstatsd_tag = @dogstatsd_tag_name + ":" + tag[0..tag.rindex(/\./) - 1].strip
+          options[:tags] = [dogstatsd_tag]
 
           case type
           when 'increment'
