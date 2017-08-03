@@ -55,7 +55,13 @@ module Fluent
             options[:sample_rate] = sample_rate
           end
 
-          dogstatsd_tag = @dogstatsd_tag_name + ":" + tag[0..tag.rindex(/\./) - 1].strip
+          if tag.scan(/\./).count > 2
+            dogstatsd_tag_value = tag[0..tag.rindex(/\./) - 1].strip
+          else
+            dogstatsd_tag_value = tag
+          end
+
+          dogstatsd_tag = @dogstatsd_tag_name + ":" + dogstatsd_tag_value
           options[:tags] = [dogstatsd_tag]
 
           case type
