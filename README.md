@@ -2,101 +2,32 @@
 
 Fluend plugin for Dogstatsd, that is statsd server for Datadog.
 
+## Fork changes
+
+This sections described changes that have been done after fork.
+
+1. Removed options `use_tag_as_key`, `use_tag_as_key_if_missing`, `flat_tags`, `flat_tag`, `value_key`.
+4. Appended fluentd event tag parsing to send to Dogstatsd under the tag.
+2. Appended option `key_name` to clearly set the statsd metric name. The original plugin supports only `use_tag_as_key` and `value_key` options.
+3. Appended option `dogstatsd_tag_name` to name the tag of Dogstatsd metric.
+
 ## Installation
 
-    $ gem install fluent-plugin-dogstatsd
+    $ gem install specific_install
+    $ td-agent-gem specific_install -l https://github.com/ifunny/fluent-plugin-dogstatsd
 
 ## Usage
 
 ```
-$ echo '{"type": "increment", "key": "apache.requests", "tags": {"url": "/"}}' | fluent-cat dogstatsd.hello
-$ echo '{"type": "histogram", "key": "apache.response_time", "value": 10.5, "tags": {"url": "/hello"}}' | fluent-cat dogstatsd.hello
-$ echo '{"type": "event", "title": "Deploy", "text": "New revision"}' | fluent-cat dogstatsd.hello
-```
-
-Supported types are `increment`, `decrement`, `count`, `gauge`, `histogram`, `timing`, `set` and `event`.
-
-## Configuration
-
-```
-<match dogstatsd.*>
-  type dogstatsd
-
-  # Dogstatsd host
-  host localhost
-
-  # Dogstatsd port
-  port 8125
-
-  # Use tag of fluentd record as key sent to Dogstatsd
-  use_tag_as_key false
-
-  # (Treat fields in a record as tags)
-  # flat_tags true
-
-  # (Metric type in Datadog.)
-  # metric_type increment
-
-  # Default: "value"
-  # value_key Value
-</match>
-```
-
-## Example
-
-### Count log lines
-
-```apache
-<source>
-  type tail
-  path /tmp/sample.log
-  tag datadog.increment.sample
-  format ...
-</source>
-
-<match datadog.increment.*>
-  type dogstatsd
+<store>
+  @type dogstatsd
   metric_type increment
-  flat_tags true
-  use_tag_as_key true
-</match>
+  key_name ifunny.fluentd.messages.rate_avg
+  dogstatsd_tag_name log_name
+</store>
 ```
 
-### Histogram
-
-```apache
-<source>
-  type tail
-  path /tmp/sample.log
-  tag datadog.histogram.sample
-  format /^(?<value>[^ ]*) (?<host>[^ ]*)$/
-</source>
-
-<match datadog.histogram.*>
-  type dogstatsd
-  metric_type histogram
-  flat_tags true
-  use_tag_as_key true
-</match>
-```
-
-### MySQL threads
-
-```apache
-<source>
-  type mysql_query
-  tag datadog.histogram.mysql_threads
-  query SHOW VARIABLES LIKE 'Thread_%'
-</source>
-
-<match datadog.histogram.mysql_threads>
-  type dogstatsd
-  metric_type histogram
-  value_key Value
-  flat_tags true
-  use_tag_as_key true
-</match>
-```
+Supported type is only `increment`.
 
 ## Contributing
 
